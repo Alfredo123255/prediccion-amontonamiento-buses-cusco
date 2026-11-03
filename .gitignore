@@ -1,0 +1,18 @@
+# datos: se obtienen de los docentes (ver Dataset/README.md)
+Dataset/*
+!Dataset/README.md
+Dataset.zip
+
+# documentos del curso, informes y búsquedas bibliográficas
+*.pdf
+*.PDF
+*.docx
+scopus_*.csv
+
+# artefactos pesados que regenera el notebook
+modelos/*.joblib
+resultados/*.pkl
+figuras/eda_salida.txt
+
+.ipynb_checkpoints/
+__pycache__/
