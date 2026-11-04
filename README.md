@@ -25,7 +25,7 @@ En un corredor de transporte público de Cusco los buses salen del terminal bien
 
 1. Copiar `Times.csv` y `Monitoring.csv` (provistos por los docentes) en `Dataset/`.
 2. Instalar dependencias: `pip install -r requirements.txt`
-3. Abrir y ejecutar `Experimentacion.ipynb` con Jupyter desde la raíz del repositorio (15–25 min).
+3. Abrir y ejecutar `Experimentacion.ipynb` con Jupyter desde la raíz del repositorio (~40 min).
 
 La semilla está fija (`SEED = 42`) y la partición es temporal por días: entrenamiento del 06 al 22 de enero de 2025, validación del 23 al 26 y prueba del 27 de enero al 1 de febrero.
 
