@@ -16,3 +16,14 @@ figuras/eda_salida.txt
 
 .ipynb_checkpoints/
 __pycache__/
+
+# compilación local de LaTeX y fuentes sueltas del Entregable 1
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.out
+*.synctex.gz
+Entregable1_*
+paper_E1.tex
+Entregable2_*
