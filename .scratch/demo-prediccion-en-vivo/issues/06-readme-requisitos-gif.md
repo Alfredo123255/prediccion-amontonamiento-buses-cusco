@@ -6,9 +6,15 @@
 
 **Status:** ready-for-agent
 
-- [ ] El README de la demo explica dónde poner los CSV, cómo entrenar y cómo lanzar la app, en 3 a 5 pasos.
-- [ ] Streamlit está en los requisitos del proyecto y no se agregaron otras dependencias.
-- [ ] El README del proyecto apunta a la demo, que ya no figura "en construcción".
-- [ ] Las pruebas pasan con un solo comando.
-- [ ] Hay un GIF o video de unos 30–60 s: reloj avanzando en hora punta, bus elegido, rango y llegada real dentro, MAE acumulado. No muestra datos crudos.
-- [ ] El GIF no se versiona si pesa demasiado o contiene datos de los docentes. Si no se versiona, queda guardado donde el grupo lo encuentre.
+- [x] El README de la demo explica dónde poner los CSV, cómo entrenar y cómo lanzar la app, en 3 a 5 pasos.
+- [x] Streamlit está en los requisitos del proyecto y no se agregaron otras dependencias.
+- [x] El README del proyecto apunta a la demo, que ya no figura "en construcción".
+- [x] Las pruebas pasan con un solo comando.
+- [x] Hay un GIF o video de unos 30–60 s: reloj avanzando en hora punta, bus elegido, rango y llegada real dentro, MAE acumulado. No muestra datos crudos.
+- [x] El GIF no se versiona si pesa demasiado o contiene datos de los docentes. Si no se versiona, queda guardado donde el grupo lo encuentre.
+
+## Comments
+
+- 2026-11-23, `demo/README.md` reescrito (4 pasos, guía de la expo, pruebas, respaldo); el README raíz apunta a la demo. Streamlit ya estaba en `requirements.txt` (pydeck viene con él); no se agregaron dependencias.
+- Pruebas: `python demo/test_nucleo.py`.
+- Respaldo grabado con Playwright headless (Chromium del sistema) y ffmpeg: `demo/respaldo/demo_respaldo.gif` (5,6 MB) y `.mp4` (0,8 MB), ignorados por git. Falta subirlos a la carpeta compartida del grupo.

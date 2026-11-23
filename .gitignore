@@ -31,3 +31,4 @@ Entregable2_*
 # demo: entorno local y artefactos que regenera demo/entrenar.py
 .venv/
 demo/artefactos/
+demo/respaldo/

@@ -22,7 +22,7 @@ En un corredor de transporte público de Cusco los buses siguen un horario de pa
 ├── figuras/                # figuras del paper y de los experimentos
 ├── resultados/             # tablas de resultados (CSV) y entorno de ejecución
 ├── modelos/                # modelos entrenados (.joblib, no se versionan; los genera el notebook)
-└── demo/                   # demostración interactiva (en construcción)
+└── demo/                   # demo en vivo para la exposición (Streamlit + mapa, ver demo/README.md)
 ```
 
 ## Cómo ejecutar
@@ -32,6 +32,8 @@ En un corredor de transporte público de Cusco los buses siguen un horario de pa
 3. Abrir y ejecutar `Experimentacion.ipynb` con Jupyter desde la raíz del repositorio (~2 h; Random Forest toma más de 1 h).
 
 La semilla está fija (`SEED = 42`) y la partición es temporal por días: entrenamiento del 06 al 22 de enero de 2025, validación del 23 al 26 y prueba del 27 de enero al 1 de febrero.
+
+Demo de predicción en vivo para la exposición: ver [`demo/README.md`](demo/README.md) (se entrena en minutos, sin el notebook).
 
 Para compilar el paper, subir `paper/paper_E2.tex` y la carpeta `figuras/` a Overleaf (o compilar localmente con `pdflatex` desde `paper/`).
 
