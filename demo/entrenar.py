@@ -1,8 +1,9 @@
 """Entrenamiento rápido de la demo (minutos, no horas).
 
 Reconstruye el dataset de modelado con la misma lógica que `Experimentacion.ipynb` (secciones 1–3),
-entrena Gradient Boosting (profundidad 6, tasa 0,1) con entrenamiento + validación y guarda en
-`demo/artefactos/demo.joblib` el modelo y los pasos de los días de prueba. Nada de eso se versiona.
+entrena Gradient Boosting (profundidad 6, tasa 0,1): P50 con entrenamiento + validación; P10 y P90 con
+entrenamiento, calibrados con CQR en validación para cubrir el 80 %. Guarda en `demo/artefactos/demo.joblib`
+los modelos, la corrección CQR, un resumen y los pasos de los días de prueba. Nada de eso se versiona.
 
 Correr desde cualquier carpeta: python demo/entrenar.py
 """
@@ -19,6 +20,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.metrics import mean_absolute_error
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+from nucleo import calibrar
 
 warnings.filterwarnings("ignore", category=UserWarning)
 T0 = time.perf_counter()
@@ -146,18 +149,43 @@ d = D_all[D_all.y.notna()]
 print("filas por Δ y partición (deben coincidir con el notebook):")
 print(d.groupby(["delta", "split"]).size().unstack())
 
-# --- 4. Gradient Boosting con los hiperparámetros del notebook, entrenado con entrenamiento + validación
-ct = ColumnTransformer([("num", Pipeline([("imp", SimpleImputer(strategy="median")), ("sc", StandardScaler())]), NUM),
-                        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), CAT)])
-modelo = Pipeline([("prep", ct), ("model", HistGradientBoostingRegressor(
-    learning_rate=0.1, max_depth=6, max_iter=1000, early_stopping=True, random_state=SEED))])
-trva, te = d[d.split != "test"], d[d.split == "test"]
-modelo.fit(trva[NUM + CAT], trva.y)
-mae = mean_absolute_error(te.y, modelo.predict(te[NUM + CAT]))
+# --- 4. Gradient Boosting con los hiperparámetros del notebook
+def gb(**kw):
+    ct = ColumnTransformer([("num", Pipeline([("imp", SimpleImputer(strategy="median")), ("sc", StandardScaler())]), NUM),
+                            ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), CAT)])
+    return Pipeline([("prep", ct), ("model", HistGradientBoostingRegressor(
+        learning_rate=0.1, max_depth=6, max_iter=1000, early_stopping=True, random_state=SEED, **kw))])
+
+
+X = NUM + CAT
+tr, va, te = (d[d.split == s] for s in ("train", "val", "test"))
+trva = d[d.split != "test"]
+modelos = {"p50": gb().fit(trva[X], trva.y)}
+mae = mean_absolute_error(te.y, modelos["p50"].predict(te[X]))
 print(f"MAE en prueba: {mae:.3f} min (notebook: 1.919)")
+
+# P10 y P90 solo con entrenamiento: validación queda libre para la calibración CQR
+for nombre, alfa in (("p10", 0.1), ("p90", 0.9)):
+    modelos[nombre] = gb(loss="quantile", quantile=alfa).fit(tr[X], tr.y)
+lo_va, hi_va = modelos["p10"].predict(va[X]), modelos["p90"].predict(va[X])
+lo_te, hi_te = modelos["p10"].predict(te[X]), modelos["p90"].predict(te[X])
+q = calibrar(lo_va, hi_va, va.y.to_numpy())
+
+
+def cob(lo, hi, y):
+    # ponytail: mide [lo - q, hi + q] sin el recorte contra P50 de `predecir`, que solo ensancha: la app cubre ≥ esto
+    return float(((y >= lo) & (y <= hi)).mean())
+
+
+resumen = {"mae_test": mae, "q_cqr": q,
+           "cob_val_antes": cob(lo_va, hi_va, va.y), "cob_val_despues": cob(lo_va - q, hi_va + q, va.y),
+           "cob_test_antes": cob(lo_te, hi_te, te.y), "cob_test_despues": cob(lo_te - q, hi_te + q, te.y)}
+print(f"CQR: corrección {q:+.3f} min")
+print(f"cobertura P10–P90  validación: {resumen['cob_val_antes']:.1%} → {resumen['cob_val_despues']:.1%}"
+      f"  |  prueba: {resumen['cob_test_antes']:.1%} → {resumen['cob_test_despues']:.1%}")
 
 OUT.mkdir(exist_ok=True)
 cols = list(dict.fromkeys(["date", "veh", "trip", "k", "a", "kt", "s_t", "a_t"] + NUM))
 pasos = D_all[D_all.split == "test"][cols].reset_index(drop=True)
-joblib.dump({"modelo": modelo, "features": NUM + CAT, "pasos": pasos}, OUT / "demo.joblib")
+joblib.dump({"modelos": modelos, "q": q, "resumen": resumen, "features": X, "pasos": pasos}, OUT / "demo.joblib")
 print(f"guardado {OUT / 'demo.joblib'} en {(time.perf_counter() - T0) / 60:.1f} min")

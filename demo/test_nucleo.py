@@ -5,18 +5,22 @@ Correr: python demo/test_nucleo.py  (o pytest demo/test_nucleo.py)
 import numpy as np
 import pandas as pd
 
-from nucleo import predecir
+from nucleo import calibrar, predecir
 
 
 class ModeloEspia:
-    """Predice y = sp (tiempo programado) y guarda las filas que recibió."""
+    """Predice y = sp (tiempo programado) + desfase y guarda las filas que recibió."""
 
-    def __init__(self):
-        self.vistos = []
+    def __init__(self, desfase=0):
+        self.desfase, self.vistos = desfase, []
 
     def predict(self, X):
         self.vistos.append(X.copy())
-        return X.sp.to_numpy()
+        return X.sp.to_numpy() + self.desfase
+
+
+def modelos(p50=None, d10=-2, d90=3):
+    return {"p10": ModeloEspia(d10), "p50": p50 or ModeloEspia(), "p90": ModeloEspia(d90)}
 
 
 def pasos_sinteticos():
@@ -40,7 +44,7 @@ FEATURES = ["sp", "veh"]
 
 def test_nunca_usa_pasos_posteriores_al_instante():
     m = ModeloEspia()
-    r = predecir(pasos_sinteticos(), m, FEATURES, instante=605)
+    r = predecir(pasos_sinteticos(), modelos(m), FEATURES, instante=605)
     assert sum(len(X) for X in m.vistos) == 2  # solo las filas del paso k=1 del bus 1
     assert set(r.k) == {1}
     assert list(r.kt) == [2, 3]
@@ -48,23 +52,53 @@ def test_nunca_usa_pasos_posteriores_al_instante():
 
 
 def test_hora_real_solo_si_ya_ocurrio():
-    r = predecir(pasos_sinteticos(), ModeloEspia(), FEATURES, instante=609).set_index(["veh", "kt"])
+    r = predecir(pasos_sinteticos(), modelos(), FEATURES, instante=609).set_index(["veh", "kt"])
     assert np.isnan(r.loc[("1", 2), "real"])  # llega en el 610, todavía no
-    r = predecir(pasos_sinteticos(), ModeloEspia(), FEATURES, instante=722).set_index(["veh", "kt"])
+    r = predecir(pasos_sinteticos(), modelos(), FEATURES, instante=722).set_index(["veh", "kt"])
     assert r.loc[("2", 3), "real"] == 722  # llegó justo en el instante
 
 
 def test_bus_sin_pasos_no_aparece():
-    r = predecir(pasos_sinteticos(), ModeloEspia(), FEATURES, instante=650)
+    r = predecir(pasos_sinteticos(), modelos(), FEATURES, instante=650)
     assert set(r.veh) == {"1"}
-    assert len(predecir(pasos_sinteticos(), ModeloEspia(), FEATURES, instante=500)) == 0
+    assert len(predecir(pasos_sinteticos(), modelos(), FEATURES, instante=500)) == 0
 
 
 def test_bus_al_que_le_falta_un_paso():
-    r = predecir(pasos_sinteticos(), ModeloEspia(), FEATURES, instante=730).set_index(["veh", "kt"])
+    r = predecir(pasos_sinteticos(), modelos(), FEATURES, instante=730).set_index(["veh", "kt"])
     assert r.loc[("2", 2), "p50"] == 709  # se predice aunque no haya hora real
     assert np.isnan(r.loc[("2", 2), "real"])
     assert r.loc[("2", 3), "real"] == 722
+
+
+def test_rango_calibrado_y_marca_de_acierto():
+    r = predecir(pasos_sinteticos(), modelos(), FEATURES, instante=730, q=1).set_index(["veh", "kt"])
+    assert r.loc[("2", 3), "p10"] == 700 + 20 - 2 - 1
+    assert r.loc[("2", 3), "p90"] == 700 + 20 + 3 + 1
+    assert r.loc[("2", 3), "dentro"]  # real 722 en [717, 724]
+    assert not r.loc[("2", 2), "dentro"]  # sin hora real
+    r = predecir(pasos_sinteticos(), modelos(), FEATURES, instante=730, q=-3).set_index(["veh", "kt"])
+    assert not r.loc[("2", 3), "dentro"]  # q < 0 cruza los extremos: el rango colapsa en p50 = 720
+
+
+def test_orden_de_cuantiles_aunque_los_modelos_crucen():
+    r = predecir(pasos_sinteticos(), modelos(d10=5, d90=-5), FEATURES, instante=730, q=1)
+    assert (r.p10 <= r.p50).all() and (r.p50 <= r.p90).all()
+    assert (r.p10 == r.p50).all() and (r.p90 == r.p50).all()  # cruzados: el rango colapsa en p50
+
+
+def test_cqr_lleva_la_cobertura_al_80():
+    """Intervalo fijo [-0,5; 0,5] sobre y ~ N(0, 1): cubre ~38 %. Calibrado en una muestra, evaluado en otra."""
+    rng = np.random.default_rng(0)
+    y_val, y_te = rng.normal(size=5000), rng.normal(size=5000)
+    lo, hi = np.full(5000, -0.5), np.full(5000, 0.5)
+    assert abs(((y_te >= lo) & (y_te <= hi)).mean() - 0.38) < 0.03
+    q = calibrar(lo, hi, y_val)
+    cob = ((y_te >= lo - q) & (y_te <= hi + q)).mean()
+    assert abs(cob - 0.80) <= 0.02, cob
+    # intervalo demasiado ancho: la corrección es negativa y lo estrecha
+    q = calibrar(lo * 6, hi * 6, y_val)
+    assert q < 0 and abs(((y_te >= -3 - q) & (y_te <= 3 + q)).mean() - 0.80) <= 0.02
 
 
 if __name__ == "__main__":

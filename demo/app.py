@@ -39,7 +39,7 @@ ini, fin = int(pasos_dia.a.min()), int(pasos_dia.a.max()) + 1
 instante = st.slider("Hora", ini, fin, value=min(ini + 180, fin), format="%d min", step=1)
 st.subheader(f"🕒 {hhmm(instante)}")
 
-r = predecir(pasos_dia, art["modelo"], art["features"], instante)
+r = predecir(pasos_dia, art["modelos"], art["features"], instante, art["q"])
 if r.empty:
     st.info("Ningún bus ha pasado todavía por un punto de control.")
     st.stop()
@@ -50,6 +50,12 @@ st.write(f"Último punto de control: **{int(rb.k.iloc[0])}** a las **{hhmm(rb.a.
 st.dataframe(pd.DataFrame({
     "Punto": rb.kt.astype(int),
     "Estimada (P50)": rb.p50.map(hhmm),
+    "Rango P10–P90": rb.p10.map(hhmm) + "–" + rb.p90.map(hhmm),
     "Programada": rb.programada.map(hhmm),
     "Real": rb.real.map(hhmm),
-}), hide_index=True)
+    "En rango": rb.dentro.map({True: "✅", False: ""}),
+}).style.apply(lambda fila: ["background-color: rgba(46, 160, 67, 0.2)" if rb.dentro[fila.name] else ""] * len(fila), axis=1),
+    hide_index=True)
+res = art["resumen"]
+st.caption(f"Rango P10–P90 calibrado con CQR en validación: cubre {res['cob_val_despues']:.0%} en validación "
+           f"(sin calibrar, {res['cob_val_antes']:.0%}) y {res['cob_test_despues']:.0%} en prueba.")
