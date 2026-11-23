@@ -5,7 +5,7 @@ Correr: python demo/test_nucleo.py  (o pytest demo/test_nucleo.py)
 import numpy as np
 import pandas as pd
 
-from nucleo import calibrar, predecir
+from nucleo import calibrar, posiciones, predecir
 
 
 class ModeloEspia:
@@ -99,6 +99,16 @@ def test_cqr_lleva_la_cobertura_al_80():
     # intervalo demasiado ancho: la corrección es negativa y lo estrecha
     q = calibrar(lo * 6, hi * 6, y_val)
     assert q < 0 and abs(((y_te >= -3 - q) & (y_te <= 3 + q)).mean() - 0.80) <= 0.02
+
+
+def test_posicion_gps_en_el_minuto_actual():
+    gps = pd.DataFrame({"veh": ["1", "1", "1", "2", "3"], "t": [600, 604.5, 611, 590, 600],
+                        "lat": [1, 2, 3, 9, 7], "lon": [1, 2, 3, 9, 7]})
+    r = posiciones(gps, instante=605).set_index("veh")
+    assert r.loc["1", "lat"] == 2  # último ping antes del instante, nunca el del minuto 611
+    assert "2" not in r.index  # su último ping es de hace 15 min: ya no se dibuja
+    assert r.loc["3", "lat"] == 7  # justo 5 min: todavía se dibuja
+    assert len(posiciones(gps, instante=500)) == 0
 
 
 if __name__ == "__main__":

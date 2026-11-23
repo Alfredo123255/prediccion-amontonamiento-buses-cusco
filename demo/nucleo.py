@@ -35,3 +35,10 @@ def predecir(pasos, modelos, features, instante, q=0.0):
     d["real"] = d.a_t.where(d.a_t <= instante)
     d["dentro"] = d.real.between(d.p10, d.p90)
     return d[COLUMNAS]
+
+
+def posiciones(gps, instante, max_edad=5):
+    """Último ping GPS de cada bus con instante - max_edad <= t <= instante (`gps`: veh, t, lat, lon).
+    Un bus sin ping en los últimos `max_edad` minutos no se dibuja (fuera de servicio o sin señal)."""
+    vis = gps[gps.t.between(instante - max_edad, instante)]
+    return vis.loc[vis.groupby("veh").t.idxmax()].reset_index(drop=True)

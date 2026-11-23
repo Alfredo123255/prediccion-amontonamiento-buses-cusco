@@ -4,7 +4,8 @@ Reconstruye el dataset de modelado con la misma lógica que `Experimentacion.ipy
 decide en validación si se usa el clima (sin clima, salvo que quitarlo empeore el MAE), entrena Gradient Boosting
 (profundidad 6, tasa 0,1): P50 con entrenamiento + validación; P10 y P90 con
 entrenamiento, calibrados con CQR en validación para cubrir el 80 %. Guarda en `demo/artefactos/demo.joblib`
-los modelos, la corrección CQR, un resumen y los pasos de los días de prueba. Nada de eso se versiona.
+los modelos, la corrección CQR, un resumen y, de los días de prueba, los pasos y el GPS limpio
+(más las coordenadas de los 18 puntos). Nada de eso se versiona.
 
 Correr desde cualquier carpeta: python demo/entrenar.py
 """
@@ -210,5 +211,11 @@ print(f"cobertura P10–P90  validación: {resumen['cob_val_antes']:.1%} → {re
 OUT.mkdir(exist_ok=True)
 cols = list(dict.fromkeys(["date", "veh", "trip", "k", "a", "kt", "s_t", "a_t"] + NUM))
 pasos = D_all[D_all.split == "test"][cols].reset_index(drop=True)
-joblib.dump({"modelos": modelos, "q": q, "resumen": resumen, "features": X, "pasos": pasos}, OUT / "demo.joblib")
+# GPS ya limpio (Isolation Forest) de los días de prueba y coordenadas de los 18 puntos, para el mapa
+LATLON = {"latitude": "lat", "longitude": "lon"}
+gps = m.loc[m.date > VAL_END, ["date", "veh", "t", "latitude", "longitude"]].rename(columns=LATLON).astype(
+    {"t": "float32", "lat": "float32", "lon": "float32"})
+puntos = cp[["latitude", "longitude"]].rename(columns=LATLON).reset_index()
+joblib.dump({"modelos": modelos, "q": q, "resumen": resumen, "features": X, "pasos": pasos,
+             "gps": gps.reset_index(drop=True), "puntos": puntos}, OUT / "demo.joblib")
 print(f"guardado {OUT / 'demo.joblib'} en {(time.perf_counter() - T0) / 60:.1f} min")
