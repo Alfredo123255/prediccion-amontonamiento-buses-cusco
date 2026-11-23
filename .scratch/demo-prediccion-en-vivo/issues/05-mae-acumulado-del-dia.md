@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (Tracer bullet: predicción P50 de un bus en Streamlit)
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] El núcleo calcula el MAE acumulado del modelo y del horario hasta el instante dado, sobre las predicciones hechas en los pasos ya ocurridos cuya llegada real también ya ocurrió.
 - [x] Prueba: las llegadas reales posteriores al instante no entran en el cálculo.

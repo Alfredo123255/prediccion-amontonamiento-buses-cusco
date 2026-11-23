@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] El script de entrenamiento reconstruye el dataset de modelado con la misma lógica que el notebook. Los conteos por Δ y partición coinciden con la tabla de salida del notebook (por ejemplo, Δ=1: 43 815 en entrenamiento, 10 050 en validación y 16 875 en prueba).
 - [x] Entrena Gradient Boosting (profundidad 6, tasa 0,1) con entrenamiento y validación, y guarda el modelo y los datos por paso de cada día de prueba. Ningún artefacto se versiona.

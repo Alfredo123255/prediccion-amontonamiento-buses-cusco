@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (Tracer bullet: predicción P50 de un bus en Streamlit)
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] El script guarda, por cada día de prueba, las posiciones GPS ya limpias y las coordenadas de los 18 puntos.
 - [x] Botón ▶/⏸ que avanza el reloj a x60 sin recargar toda la página. El slider fija la hora.

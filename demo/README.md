@@ -25,4 +25,4 @@ python demo/test_nucleo.py
 
 ## GIF de respaldo
 
-`demo/respaldo/demo_respaldo.gif` (5,6 MB) y `demo_respaldo.mp4` (0,8 MB): 50 s del 30-ene desde las 07:39 con el bus 21, que llega al punto 18 dentro del rango, y el MAE acumulado avanzando. No se versionan (pesan): se suben a la carpeta compartida del grupo.
+`demo/respaldo/demo_respaldo.gif` (5,6 MB) y `demo_respaldo.mp4` (0,8 MB): 50 s del 30-ene desde las 07:39 con el bus 21, que llega al punto 18 dentro del rango, y el MAE acumulado avanzando. El MP4 está en el repo; el GIF no se versiona por el peso.

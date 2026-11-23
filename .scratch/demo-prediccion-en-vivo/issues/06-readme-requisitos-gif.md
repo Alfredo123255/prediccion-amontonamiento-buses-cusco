@@ -4,7 +4,7 @@
 
 **Blocked by:** 02 (Rango P10–P90 calibrado con CQR), 03 (Decisión del clima en validación), 04 (Reloj ▶ x60 y mapa en vivo), 05 (MAE acumulado del día)
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] El README de la demo explica dónde poner los CSV, cómo entrenar y cómo lanzar la app, en 3 a 5 pasos.
 - [x] Streamlit está en los requisitos del proyecto y no se agregaron otras dependencias.
@@ -17,4 +17,4 @@
 
 - 2026-11-23, `demo/README.md` reescrito (4 pasos, guía de la expo, pruebas, respaldo); el README raíz apunta a la demo. Streamlit ya estaba en `requirements.txt` (pydeck viene con él); no se agregaron dependencias.
 - Pruebas: `python demo/test_nucleo.py`.
-- Respaldo grabado con Playwright headless (Chromium del sistema) y ffmpeg: `demo/respaldo/demo_respaldo.gif` (5,6 MB) y `.mp4` (0,8 MB), ignorados por git. Falta subirlos a la carpeta compartida del grupo.
+- Respaldo grabado con Playwright headless (Chromium del sistema) y ffmpeg: `demo/respaldo/demo_respaldo.gif` (5,6 MB) y `.mp4` (0,8 MB), el MP4 se versiona; el GIF queda fuera de git por el peso.

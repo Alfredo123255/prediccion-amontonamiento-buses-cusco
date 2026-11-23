@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (Tracer bullet: predicción P50 de un bus en Streamlit)
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] El script entrena los modelos de cuantiles P10 y P90 con entrenamiento y calcula la corrección CQR con validación.
 - [x] El resumen de entrenamiento informa la cobertura P10–P90 en validación y en prueba, antes y después de calibrar.

@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (Tracer bullet: predicción P50 de un bus en Streamlit)
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] El script compara el MAE en validación de Gradient Boosting con y sin clima, entrenando solo con entrenamiento.
 - [x] Se queda sin clima salvo que eso empeore el MAE de validación, y guarda la decisión y ambas cifras en el resumen.
