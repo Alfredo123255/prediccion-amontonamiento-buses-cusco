@@ -27,6 +27,15 @@ if not ART.exists():
     st.stop()
 art = cargar()
 pasos = art["pasos"]
+res = art["resumen"]
+cifras = ("No había datos de clima para comparar." if res["mae_val_con_clima"] is None else
+          f"MAE en validación: {res['mae_val_sin_clima']:.2f} min sin clima, {res['mae_val_con_clima']:.2f} min con clima.")
+if res["usa_clima"]:
+    st.info("Modelo: Gradient Boosting **con clima**: en validación mejoró el error, aunque el reanálisis ERA5 "
+            "no existe en tiempo real. " + cifras)
+else:
+    st.info("Modelo: Gradient Boosting **sin clima**, a diferencia del modelo del paper: el clima viene del "
+            "reanálisis ERA5, que no existe en tiempo real, y en la ablación del paper empeoró el error. " + cifras)
 
 # día por defecto: el día laborable de prueba con más pasos registrados
 n_pasos = pasos.drop_duplicates(["trip", "k"]).groupby("date").size()
@@ -56,6 +65,5 @@ st.dataframe(pd.DataFrame({
     "En rango": rb.dentro.map({True: "✅", False: ""}),
 }).style.apply(lambda fila: ["background-color: rgba(46, 160, 67, 0.2)" if rb.dentro[fila.name] else ""] * len(fila), axis=1),
     hide_index=True)
-res = art["resumen"]
 st.caption(f"Rango P10–P90 calibrado con CQR en validación: cubre {res['cob_val_despues']:.0%} en validación "
            f"(sin calibrar, {res['cob_val_antes']:.0%}) y {res['cob_test_despues']:.0%} en prueba.")

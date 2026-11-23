@@ -1,7 +1,8 @@
 """Entrenamiento rápido de la demo (minutos, no horas).
 
 Reconstruye el dataset de modelado con la misma lógica que `Experimentacion.ipynb` (secciones 1–3),
-entrena Gradient Boosting (profundidad 6, tasa 0,1): P50 con entrenamiento + validación; P10 y P90 con
+decide en validación si se usa el clima (sin clima, salvo que quitarlo empeore el MAE), entrena Gradient Boosting
+(profundidad 6, tasa 0,1): P50 con entrenamiento + validación; P10 y P90 con
 entrenamiento, calibrados con CQR en validación para cubrir el 80 %. Guarda en `demo/artefactos/demo.joblib`
 los modelos, la corrección CQR, un resumen y los pasos de los días de prueba. Nada de eso se versiona.
 
@@ -88,14 +89,18 @@ seg = mg.groupby(["trip", "k"]).agg(v=("speed", "mean"), stop=("stop", "mean")).
 seg["trip"] = seg.trip.astype(p.trip.dtype)
 seg["k"] = seg.k.astype(int)
 
-# altitud y clima de Open-Meteo (ya descargados por el notebook en datos_externos/)
+# altitud y clima de Open-Meteo (ya descargados por el notebook en datos_externos/). La altitud
+# (puntos_control_clima.csv) es fija y siempre hace falta; el clima horario solo si se compara.
+# ponytail: sin clima_open_meteo.csv no se compara y el modelo va sin clima, sin avisar más que en el resumen.
 cp = pd.read_csv(EXT / "puntos_control_clima.csv", index_col="k")
-cl = pd.read_csv(EXT / "clima_open_meteo.csv").sort_values(["k", "time"])
-cl["date"], cl["hora_c"] = cl.time.str[:10], cl.time.str[11:13].astype(int)
-cl["precip_3h"] = cl.groupby("k").precipitation.transform(lambda x: x.rolling(3, min_periods=1).sum())
-cl = cl.rename(columns={"temperature_2m": "temp", "relative_humidity_2m": "hum", "precipitation": "precip",
-                        "cloud_cover": "nubes", "wind_speed_10m": "viento"})
-cl = cl[["k", "date", "hora_c", "temp", "hum", "precip", "precip_3h", "nubes", "viento"]]
+HAY_CLIMA = (EXT / "clima_open_meteo.csv").exists()
+if HAY_CLIMA:
+    cl = pd.read_csv(EXT / "clima_open_meteo.csv").sort_values(["k", "time"])
+    cl["date"], cl["hora_c"] = cl.time.str[:10], cl.time.str[11:13].astype(int)
+    cl["precip_3h"] = cl.groupby("k").precipitation.transform(lambda x: x.rolling(3, min_periods=1).sum())
+    cl = cl.rename(columns={"temperature_2m": "temp", "relative_humidity_2m": "hum", "precipitation": "precip",
+                            "cloud_cover": "nubes", "wind_speed_10m": "viento"})
+    cl = cl[["k", "date", "hora_c", "temp", "hum", "precip", "precip_3h", "nubes", "viento"]]
 
 # --- 3. Dataset de modelado: una fila por (paso real por k, destino kt = k + Δ)
 key = ["trip", "k"]
@@ -131,7 +136,8 @@ D_all = pd.concat(rows, ignore_index=True)
 D_all["hour"] = D_all.s / 60
 D_all["dow"] = pd.to_datetime(D_all.date).dt.dayofweek
 D_all["hora_c"] = (D_all.a // 60).astype(int)
-D_all = D_all.merge(cl, on=["k", "date", "hora_c"], how="left")
+if HAY_CLIMA:
+    D_all = D_all.merge(cl, on=["k", "date", "hora_c"], how="left")
 D_all["alt"] = D_all.k.map(cp.alt)
 D_all["desnivel"] = D_all.kt.map(cp.alt) - D_all.alt
 D_all["split"] = np.where(D_all.date <= TRAIN_END, "train", np.where(D_all.date <= VAL_END, "val", "test"))
@@ -143,30 +149,46 @@ G_CLIMA = ["temp", "hum", "precip", "precip_3h", "nubes", "viento"]
 G_ALT = ["alt", "desnivel"]
 G_CTX = ["k", "delta", "hour", "dow", "sp"]
 CAT = ["veh"]
-NUM = G_I + G_REC + G_GPS + G_CLIMA + G_ALT + G_CTX
+NUM_CLIMA = G_I + G_REC + G_GPS + G_CLIMA + G_ALT + G_CTX  # orden del notebook
+NUM_SIN_CLIMA = [c for c in NUM_CLIMA if c not in G_CLIMA]
 
 d = D_all[D_all.y.notna()]
 print("filas por Δ y partición (deben coincidir con el notebook):")
 print(d.groupby(["delta", "split"]).size().unstack())
 
 # --- 4. Gradient Boosting con los hiperparámetros del notebook
-def gb(**kw):
-    ct = ColumnTransformer([("num", Pipeline([("imp", SimpleImputer(strategy="median")), ("sc", StandardScaler())]), NUM),
+def gb(num, **kw):
+    ct = ColumnTransformer([("num", Pipeline([("imp", SimpleImputer(strategy="median")), ("sc", StandardScaler())]), num),
                             ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), CAT)])
     return Pipeline([("prep", ct), ("model", HistGradientBoostingRegressor(
         learning_rate=0.1, max_depth=6, max_iter=1000, early_stopping=True, random_state=SEED, **kw))])
 
 
-X = NUM + CAT
 tr, va, te = (d[d.split == s] for s in ("train", "val", "test"))
 trva = d[d.split != "test"]
-modelos = {"p50": gb().fit(trva[X], trva.y)}
+
+# Clima: ERA5/Open-Meteo es reanálisis y no existe en tiempo real. Se compara en validación entrenando solo con
+# entrenamiento, y se queda sin clima salvo que eso empeore el MAE.
+def mae_validacion(num):
+    return mean_absolute_error(va.y, gb(num).fit(tr[num + CAT], tr.y).predict(va[num + CAT]))
+
+
+mae_val = {"sin": mae_validacion(NUM_SIN_CLIMA)}
+if HAY_CLIMA:
+    mae_val["con"] = mae_validacion(NUM_CLIMA)
+usa_clima = HAY_CLIMA and mae_val["sin"] > mae_val["con"]
+NUM = NUM_CLIMA if usa_clima else NUM_SIN_CLIMA
+print("MAE validación: " + ", ".join(f"{k} clima {v:.3f}" for k, v in mae_val.items())
+      + f" → modelo {'con' if usa_clima else 'sin'} clima")
+
+X = NUM + CAT
+modelos = {"p50": gb(NUM).fit(trva[X], trva.y)}
 mae = mean_absolute_error(te.y, modelos["p50"].predict(te[X]))
-print(f"MAE en prueba: {mae:.3f} min (notebook: 1.919)")
+print(f"MAE en prueba: {mae:.3f} min (notebook, GB con clima: 1.919)")
 
 # P10 y P90 solo con entrenamiento: validación queda libre para la calibración CQR
 for nombre, alfa in (("p10", 0.1), ("p90", 0.9)):
-    modelos[nombre] = gb(loss="quantile", quantile=alfa).fit(tr[X], tr.y)
+    modelos[nombre] = gb(NUM, loss="quantile", quantile=alfa).fit(tr[X], tr.y)
 lo_va, hi_va = modelos["p10"].predict(va[X]), modelos["p90"].predict(va[X])
 lo_te, hi_te = modelos["p10"].predict(te[X]), modelos["p90"].predict(te[X])
 q = calibrar(lo_va, hi_va, va.y.to_numpy())
@@ -177,7 +199,8 @@ def cob(lo, hi, y):
     return float(((y >= lo) & (y <= hi)).mean())
 
 
-resumen = {"mae_test": mae, "q_cqr": q,
+resumen = {"mae_test": mae, "q_cqr": q, "usa_clima": usa_clima, "mae_val_sin_clima": mae_val["sin"],
+           "mae_val_con_clima": mae_val.get("con"),
            "cob_val_antes": cob(lo_va, hi_va, va.y), "cob_val_despues": cob(lo_va - q, hi_va + q, va.y),
            "cob_test_antes": cob(lo_te, hi_te, te.y), "cob_test_despues": cob(lo_te - q, hi_te + q, te.y)}
 print(f"CQR: corrección {q:+.3f} min")
