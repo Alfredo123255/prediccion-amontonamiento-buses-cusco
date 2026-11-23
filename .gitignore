@@ -27,3 +27,7 @@ __pycache__/
 Entregable1_*
 paper_E1.tex
 Entregable2_*
+
+# demo: entorno local y artefactos que regenera demo/entrenar.py
+.venv/
+demo/artefactos/
