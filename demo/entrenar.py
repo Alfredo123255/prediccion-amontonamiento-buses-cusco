@@ -196,7 +196,7 @@ q = calibrar(lo_va, hi_va, va.y.to_numpy())
 
 
 def cob(lo, hi, y):
-    # ponytail: mide [lo - q, hi + q] sin el recorte contra P50 de `predecir`, que solo ensancha: la app cubre ≥ esto
+    # ponytail: mide [lo - q, hi + q] sin el recorte contra P50 de `nucleo.cuantiles`, que solo ensancha: la app cubre ≥ esto
     return float(((y >= lo) & (y <= hi)).mean())
 
 

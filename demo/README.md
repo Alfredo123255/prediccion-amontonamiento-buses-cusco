@@ -1,6 +1,6 @@
 # Demo: predicción en vivo del tiempo de llegada
 
-Repite un día del conjunto de prueba (27-ene al 1-feb de 2025) como si fuera en vivo. El mapa muestra la ruta, los 18 puntos de control y los buses. Para el bus elegido, una tabla da su llegada estimada (P50) a cada punto siguiente, con el rango P10–P90, la hora programada y la real. Arriba se ven el MAE acumulado del día del modelo y el del horario.
+Repite un día del conjunto de prueba (27-ene al 1-feb de 2025) como si fuera en vivo, como un panel de paradero: para el punto de control elegido, cada bus que viene tiene su llegada estimada, su rango probable (8 de cada 10 llegadas caen ahí) y la hora del horario oficial. Al llegar, se marca si cayó dentro del rango. Arriba, el marcador del día compara el error del modelo con el del horario. Pensada para 1920×1080.
 
 ## Preparar y lanzar (desde la raíz del repo)
 
@@ -11,11 +11,17 @@ Repite un día del conjunto de prueba (27-ene al 1-feb de 2025) como si fuera en
 
 ## En la expo
 
-- **▶ Reproducir x60**: 1 s real = 1 min del día. **⏸** pausa; el slider salta a cualquier hora.
-- Elegir el bus en la lista o haciendo clic en el mapa (mejor en pausa). Las filas en verde son llegadas reales que cayeron dentro del rango.
-- Hora punta recomendada: 07:00–09:00 o 17:00–19:00.
+Abre en pausa a las 07:30 del jueves 30-ene, en el punto 10 (extremo de la ruta). Guion de ~2 min:
+
+1. **El mapa**: la ruta es un circuito, ida del 1 al 10 (verde azulado) y vuelta del 11 al 18 (morado) por la misma vía. Los buses naranjas van hacia el punto elegido.
+2. **El panel**: "estos buses vienen al punto 10. El bus 29 llega en 5 min; la barra es el rango donde caen 8 de cada 10 llegadas; la raya gris es lo que dice el horario".
+3. **▶ Reproducir** (1 s = 1 min): la cuenta baja, las barras se ajustan cada vez que el bus pasa un punto y, al llegar, aparece el rombo verde (dentro del rango) o rojo. ⏸ para explicar.
+4. **El marcador**: error promedio del modelo (~1,5 min) contra el del horario, y el % de llegadas dentro del rango, que debe rondar el 80 %.
+5. Si hay preguntas: **Ir a 17:30**, clic en otro punto del mapa o **Detalles del modelo** (al pie: modelo, por qué no usa clima, calibración CQR y partición temporal).
+
+- Clic en un bus del mapa lo marca con ▸ en el panel.
 - Sin internet el mapa sigue funcionando, aunque sin fondo de calles.
-- Si falla la laptop o el proyector: GIF de respaldo (ver abajo).
+- Si falla la laptop o el proyector: video de respaldo (ver abajo).
 
 ## Pruebas
 
@@ -23,6 +29,6 @@ Repite un día del conjunto de prueba (27-ene al 1-feb de 2025) como si fuera en
 python demo/test_nucleo.py
 ```
 
-## GIF de respaldo
+## Video de respaldo
 
-`demo/respaldo/demo_respaldo.gif` (5,6 MB) y `demo_respaldo.mp4` (0,8 MB): 50 s del 30-ene desde las 07:39 con el bus 21, que llega al punto 18 dentro del rango, y el MAE acumulado avanzando. El MP4 está en el repo; el GIF no se versiona por el peso.
+`demo/respaldo/demo_respaldo.mp4`: el guion de arriba grabado en 1920×1080 (jueves 30-ene desde las 07:30, punto 10, luego el punto 16).
