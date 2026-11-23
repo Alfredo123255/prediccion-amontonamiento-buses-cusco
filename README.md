@@ -38,6 +38,6 @@ Para compilar el paper, subir `paper/paper_E2.tex` y la carpeta `figuras/` a Ove
 ## Integrantes
 
 - Divano Estefano Perez Nina
-- Ángel Fredy Cerdan Cigüeñas
+- Angel Freddy Cerdán Cigüeñas
 - Alfredo Ernesto Sanchez Tuesta
 - Renzo Kei Shimabukuro Kohatsu
