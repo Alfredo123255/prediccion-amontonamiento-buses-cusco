@@ -9,7 +9,7 @@ import pandas as pd
 import pydeck as pdk
 import streamlit as st
 
-from nucleo import posiciones, predecir
+from nucleo import mae_acumulado, posiciones, predecir
 
 ART = Path(__file__).resolve().parent / "artefactos" / "demo.joblib"
 
@@ -34,6 +34,13 @@ def hay_internet():
 def traza_ruta(_gps):
     """Huella de la ruta: GPS de los días de prueba en una grilla de ~50 m (unos 2000 puntos)."""
     return ((_gps[["lat", "lon"]] * 2000).round() / 2000).drop_duplicates()
+
+
+# P50 de todo el día una sola vez (~1 s); el MAE acumulado solo filtra en cada tick
+@st.cache_data
+def estimados_dia(dia):
+    d = pasos[pasos.date == dia]
+    return d.assign(p50=d.a + art["modelos"]["p50"].predict(d[art["features"]]))
 
 
 def hhmm(minutos):
@@ -111,6 +118,13 @@ def en_vivo():
         st.session_state.ultimo_tick = time.monotonic()
     instante = st.slider("Hora", ini, fin, key="instante", format="%d min", step=1)
     st.markdown(f"<p style='font-size:4rem;font-weight:700;margin:0'>🕒 {hhmm(instante)}</p>", unsafe_allow_html=True)
+
+    mae_m, mae_h, n = mae_acumulado(estimados_dia(dia), instante)
+    c1, c2, c3 = st.columns(3)
+    c1.metric("MAE del modelo (hoy)", "–" if n == 0 else f"{mae_m:.2f} min")
+    c2.metric("MAE del horario (hoy)", "–" if n == 0 else f"{mae_h:.2f} min")
+    c3.metric("Mejora sobre el horario", "–" if n == 0 or mae_h == 0 else f"{1 - mae_m / mae_h:.0%}")
+    st.caption(f"Acumulado del día sobre {n:,} predicciones cuya llegada real ya ocurrió.")
 
     if st.session_state.get("bus") not in buses:
         st.session_state.bus = buses[0]

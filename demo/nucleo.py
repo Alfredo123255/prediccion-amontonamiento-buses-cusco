@@ -42,3 +42,11 @@ def posiciones(gps, instante, max_edad=5):
     Un bus sin ping en los últimos `max_edad` minutos no se dibuja (fuera de servicio o sin señal)."""
     vis = gps[gps.t.between(instante - max_edad, instante)]
     return vis.loc[vis.groupby("veh").t.idxmax()].reset_index(drop=True)
+
+
+def mae_acumulado(pasos, instante):
+    """MAE del modelo y del horario hasta `instante`, sobre las predicciones hechas en pasos ya ocurridos
+    (a <= instante) cuya llegada real también ya ocurrió (a_t <= instante). `pasos` trae `p50`: la llegada
+    estimada en minutos desde medianoche. Devuelve (mae_modelo, mae_horario, n); sin filas, MAE = NaN."""
+    d = pasos[(pasos.a <= instante) & (pasos.a_t <= instante)]
+    return (d.p50 - d.a_t).abs().mean(), (d.s_t - d.a_t).abs().mean(), len(d)

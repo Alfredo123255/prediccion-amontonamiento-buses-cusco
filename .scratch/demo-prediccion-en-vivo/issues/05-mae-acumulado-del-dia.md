@@ -6,7 +6,13 @@
 
 **Status:** ready-for-agent
 
-- [ ] El núcleo calcula el MAE acumulado del modelo y del horario hasta el instante dado, sobre las predicciones hechas en los pasos ya ocurridos cuya llegada real también ya ocurrió.
-- [ ] Prueba: las llegadas reales posteriores al instante no entran en el cálculo.
-- [ ] Prueba: con un modelo perfecto sintético, el MAE del modelo es 0.
-- [ ] La interfaz muestra ambos valores y la mejora en %, y se actualizan con el reloj.
+- [x] El núcleo calcula el MAE acumulado del modelo y del horario hasta el instante dado, sobre las predicciones hechas en los pasos ya ocurridos cuya llegada real también ya ocurrió.
+- [x] Prueba: las llegadas reales posteriores al instante no entran en el cálculo.
+- [x] Prueba: con un modelo perfecto sintético, el MAE del modelo es 0.
+- [x] La interfaz muestra ambos valores y la mejora en %, y se actualizan con el reloj.
+
+## Comments
+
+- 2026-11-23, `demo/nucleo.py`: `mae_acumulado(pasos, instante)` filtra a <= instante y a_t <= instante y devuelve (MAE modelo, MAE horario, n). La P50 del día se calcula una vez por día (`estimados_dia`, cacheado, ~1 s) porque predecir las ~27 000 filas en cada tick sería lento.
+- Cuenta todas las predicciones de todos los buses del día (cada paso k → todos los kt posteriores), como en la evaluación del paper. El horario es |s_t − a_t|.
+- Con AppTest, día por defecto: a las 20:00, modelo 1,46 min, horario 2,77 min (mejora del 47 %, 24 406 predicciones).

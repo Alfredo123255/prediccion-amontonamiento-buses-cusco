@@ -5,7 +5,7 @@ Correr: python demo/test_nucleo.py  (o pytest demo/test_nucleo.py)
 import numpy as np
 import pandas as pd
 
-from nucleo import calibrar, posiciones, predecir
+from nucleo import calibrar, mae_acumulado, posiciones, predecir
 
 
 class ModeloEspia:
@@ -109,6 +109,22 @@ def test_posicion_gps_en_el_minuto_actual():
     assert "2" not in r.index  # su último ping es de hace 15 min: ya no se dibuja
     assert r.loc["3", "lat"] == 7  # justo 5 min: todavía se dibuja
     assert len(posiciones(gps, instante=500)) == 0
+
+
+def test_mae_acumulado_solo_con_llegadas_ya_ocurridas():
+    d = pasos_sinteticos().assign(p50=lambda x: x.a_t + 1)  # el modelo se equivoca 1 min siempre
+    # en el min 615 solo llegó el bus 1 al k=2 (610): la llegada al k=3 (625) aún no cuenta
+    assert mae_acumulado(d, instante=615) == (1, 1, 1)  # horario: |609 - 610|
+    # en el 625 entran las dos predicciones del k=3 (desde k=1 y k=2): horario |620 - 625| = 5
+    assert mae_acumulado(d, instante=625) == (1, (1 + 5 + 5) / 3, 3)
+    m, h, n = mae_acumulado(d, instante=599)
+    assert n == 0 and np.isnan(m) and np.isnan(h)
+
+
+def test_mae_acumulado_modelo_perfecto():
+    d = pasos_sinteticos().assign(p50=lambda x: x.a_t)
+    m, h, n = mae_acumulado(d, instante=800)
+    assert m == 0 and h > 0 and n == 4  # la fila sin llegada real no cuenta
 
 
 if __name__ == "__main__":
