@@ -21,7 +21,7 @@
 \begin{document}
 
 \title{Predicción del tiempo de llegada entre puntos de control en una ruta de transporte urbano del Cusco mediante aprendizaje automático\\[4pt]
-\large Entregable 2: implementación y evaluación experimental}
+\large Informe final}
 
 \author{\IEEEauthorblockN{Divano Estefano Perez Nina, Angel Freddy Cerdán Cigüeñas,\\Alfredo Ernesto Sanchez Tuesta, Renzo Kei Shimabukuro Kohatsu}
 \IEEEauthorblockA{Curso 1INF02 Aprendizaje de Máquina, semestre 2026-2\\
@@ -30,7 +30,7 @@ Pontificia Universidad Católica del Perú, Lima, Perú}}
 \maketitle
 
 \begin{abstract}
-En el transporte urbano del Cusco los buses deben pasar por puntos de control a horas programadas, pero estos horarios son fijos y no reflejan cómo cambia el tráfico durante el día. Este trabajo predice, cuando un bus pasa por un punto de control, cuánto tardará en llegar a cualquier punto posterior de su ruta. Se usaron los registros de paso por los dieciocho puntos de control y la posición satelital de cuarenta y cinco buses durante un mes, complementados con datos meteorológicos y de altitud. Se entrenó un único modelo de regresión para todos los trayectos y se compararon ocho algoritmos supervisados con tres referencias sin aprendizaje: el horario, el promedio histórico y el último bus que hizo el mismo trayecto. Con una partición temporal, Random Forest obtuvo el menor error, con 1,90 minutos de error absoluto medio frente a 2,40 minutos del promedio histórico, una reducción de 20,8 por ciento que confirma la hipótesis planteada. La ventaja crece con la distancia entre los puntos y se explica sobre todo por el estado del bus y por los buses que acaban de recorrer el trayecto, mientras que el clima no aporta e incluso empeora la predicción. Además, la regresión cuantílica entrega un rango de llegada que contiene al valor real en tres de cada cuatro casos, algo menos de lo esperado.
+En el transporte urbano del Cusco los buses deben pasar por puntos de control a horas programadas, pero estos horarios son fijos y no reflejan cómo cambia el tráfico durante el día. Este trabajo predice, cuando un bus pasa por un punto de control, cuánto tardará en llegar a cualquier punto posterior de su ruta. Se usaron los registros de paso por los dieciocho puntos de control y la posición satelital de cuarenta y cinco buses durante un mes, complementados con datos meteorológicos y de altitud. Se entrenó un único modelo de regresión para todos los trayectos y se compararon ocho algoritmos supervisados con tres referencias sin aprendizaje: el horario, el promedio histórico y el último bus que hizo el mismo trayecto. Con una partición temporal, Random Forest obtuvo el menor error, con 1,90 minutos de error absoluto medio frente a 2,40 minutos del promedio histórico, una reducción de 20,8 por ciento que confirma la hipótesis planteada. La ventaja crece con la distancia entre los puntos y se explica sobre todo por el estado del bus y por los buses que acaban de recorrer el trayecto, mientras que el clima no aporta e incluso empeora la predicción. Con esa evidencia, el modelo final se eligió en validación: Gradient Boosting sin variables de clima, con un error de 1,84 minutos en prueba. Su rango de llegada, calibrado con regresión cuantílica conforme, contiene al valor real en el 82 por ciento de los casos de prueba, cerca del 80 por ciento buscado. El modelo final se presenta en una demostración interactiva que repite un día de prueba como un panel de paradero.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -64,6 +64,7 @@ Esto tiene dos consecuencias. Para el \emph{operador}, el horario no permite dis
 \item Comparar ocho algoritmos de regresión frente a tres referencias sin aprendizaje mediante un diseño experimental con partición temporal.
 \item Analizar cómo varía el error con la distancia entre A y B y qué grupos de variables aportan a la predicción.
 \item Estimar intervalos de predicción (percentiles 10--90) y evaluar su cobertura.
+\item Seleccionar en validación un modelo final y presentarlo en una demostración interactiva.
 \end{enumerate}
 
 \textbf{Cambio de alcance respecto al Entregable 1.} La propuesta incluía técnicas de clustering (DBSCAN para ubicar paraderos; K-Means, Ward y mezclas gaussianas para identificar regímenes de tráfico). Siguiendo la recomendación de los docentes de concentrar el proyecto en un solo tipo de tarea, se optó por la regresión, que responde directamente a la pregunta de investigación. Por ello se retiran el clustering de regímenes y las variables derivadas de DBSCAN, cuyo aporte a la predicción fue además despreciable en una evaluación preliminar (MAE de 0,850 frente a 0,851~min con y sin ellas). Se mantienen Isolation Forest para la limpieza de datos y PCA como experimento de reducción de dimensionalidad.
@@ -74,10 +75,13 @@ Esto tiene dos consecuencias. Para el \emph{operador}, el horario no permite dis
 \subsection{Predicción del tiempo de llegada de buses}
 La predicción del tiempo de llegada (ETA) de buses se ha abordado con redes neuronales artificiales desde inicios de los 2000~\cite{chien2002} y con máquinas de vectores de soporte~\cite{bin2006}. Yu \emph{et~al.}~\cite{yu2011} compararon SVM, redes neuronales, $k$ vecinos más cercanos y regresión lineal para predecir la llegada a un paradero compartido por varias rutas; el SVM obtuvo el mejor desempeño y los modelos que usaban información de varias rutas superaron a los de una sola. Más recientemente, Petersen \emph{et~al.}~\cite{petersen2019} propusieron una red convolucional LSTM que predice simultáneamente los tiempos de todos los enlaces de una ruta de Copenhague varios pasos adelante, y superó al promedio histórico y al modelo en producción del operador, sobre todo en hora punta. Rodríguez-Deniz y Villani~\cite{rodriguez2022} plantearon un modelo bayesiano con errores $t$ de Student para manejar retrasos de cola pesada, que combina variables de buses anteriores para el corto plazo con procesos gaussianos para horizontes largos.
 
+\subsection{Ensambles de árboles y comparación de familias de modelos}
+Varios trabajos recientes comparan familias de modelos sobre datos reales de buses y vías urbanas. Yu \emph{et~al.}~\cite{yu2018} propusieron un \emph{random forest} basado en vecinos cercanos para el tiempo de viaje de buses y lo compararon con regresión lineal, $k$NN, SVM y \emph{random forest} clásico en dos rutas; obtuvieron el menor error (MAPE cercano a 7\,\%), pero con un costo de cómputo alto, que ellos mismos señalan como limitación para el uso en tiempo real. Kawatani \emph{et~al.}~\cite{kawatani2021} aplicaron \emph{gradient boosting} a datos de sondeo de buses para predecir el tiempo entre paraderos adyacentes y encontraron que el tiempo del tramo anterior y el número de paradas previas son las variables más útiles. Cheng \emph{et~al.}~\cite{cheng2019} mostraron, en autopistas, que \emph{gradient boosting} supera a redes neuronales y SVM y que la variable más importante es el tiempo de viaje del periodo actual. Wang \emph{et~al.}~\cite{wang2025} compararon modelos lineales y \emph{random forest} con redes profundas en Shenzhen: las redes profundas ganan en la mayoría de escenarios, pero solo con ventanas de historia largas y mucho más costo. En conjunto, estos trabajos sugieren que, con datos tabulares y pocos meses de historia, los ensambles de árboles son una referencia fuerte, y que las variables más informativas describen el estado reciente del tráfico; ambas ideas guían el diseño de este proyecto. Su principal limitación para el caso de Cusco es que predicen un solo tramo o un horizonte fijo, sin rango de incertidumbre.
+
 En su revisión de 40 estudios, Reich \emph{et~al.}~\cite{reich2019} encontraron que la diversidad de métricas y la frecuente omisión de comparaciones con referencias simples impiden comparar objetivamente los métodos, y recomendaron publicar referencias y código. Este trabajo adopta esa recomendación: todos los modelos se comparan con tres referencias sin aprendizaje y el código es reproducible.
 
 \subsection{Incertidumbre en la predicción}
-Una predicción puntual no indica cuánto confiar en ella. Petersen \emph{et~al.}~\cite{petersen2021} compararon la regresión cuantílica profunda y las redes recurrentes bayesianas para aproximar la distribución del tiempo de viaje hasta un punto de transbordo. La regresión cuantílica~\cite{koenker1978} permite estimar directamente percentiles de la variable objetivo y puede combinarse con métodos de \emph{boosting}~\cite{friedman2001}.
+Una predicción puntual no indica cuánto confiar en ella. Petersen \emph{et~al.}~\cite{petersen2021} compararon la regresión cuantílica profunda y las redes recurrentes bayesianas para aproximar la distribución del tiempo de viaje hasta un punto de transbordo. La regresión cuantílica~\cite{koenker1978} permite estimar directamente percentiles de la variable objetivo y puede combinarse con métodos de \emph{boosting}~\cite{friedman2001}. Sin embargo, los cuantiles aprendidos no garantizan la cobertura nominal en datos nuevos; la regresión cuantílica conforme (CQR) de Romano \emph{et~al.}~\cite{romano2019} corrige el intervalo con un conjunto de calibración para que alcance la cobertura deseada.
 
 \subsection{Variabilidad del tiempo de viaje y variables externas}
 Mazloumi \emph{et~al.}~\cite{mazloumi2010} usaron datos GPS para analizar la variabilidad del tiempo de viaje del transporte público y sus factores. Para detectar registros anómalos, Isolation Forest~\cite{liu2008} aísla las observaciones atípicas sin necesidad de etiquetas. En cuanto a variables externas, Tsapakis \emph{et~al.}~\cite{tsapakis2013} cuantificaron el aumento de los tiempos de viaje urbanos con la lluvia y la nieve.
@@ -98,8 +102,10 @@ Trabajo & Datos & Método & Salida \\
 \cite{petersen2019} & AVL, Copenhague & ConvLSTM & Tiempos de todos los enlaces \\
 \cite{rodriguez2022} & Buses urbanos de alta frecuencia & Bayesiano, $t$ de Student, PG & Retraso en tiempo real \\
 \cite{petersen2021} & AVL & Cuantiles profundos, RNN bayesiana & Distribución del tiempo de viaje \\
+\cite{yu2018} & AVL, dos rutas & RF con vecinos, $k$NN, SVM, RL & Tiempo de viaje de bus \\
+\cite{kawatani2021} & Sondeo de buses, Japón & \emph{Gradient boosting} & Tiempo entre paraderos adyacentes \\
 \midrule
-Este trabajo & Puntos de control y GPS, Cusco & 8 regresores, regresión cuantílica & ETA A$\to$B con intervalo \\
+Este trabajo & Puntos de control y GPS, Cusco & 8 regresores, regresión cuantílica con CQR & ETA A$\to$B con intervalo \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -243,6 +249,9 @@ L_\tau(y,\hat{y}) = \max\big(\tau\,(y-\hat{y}),\,(\tau-1)\,(y-\hat{y})\big)
 \end{equation}
 para $\tau \in \{0{,}1;\,0{,}5;\,0{,}9\}$, con los hiperparámetros elegidos para la predicción puntual, de modo que cada predicción venga acompañada de un rango P10--P90.
 
+\subsection{Modelo final y calibración}
+Los experimentos E1--E7 comparan modelos y grupos de variables en prueba. Para no elegir el modelo final con esos mismos datos, la decisión se repitió solo con entrenamiento y validación. Se fijó Gradient Boosting, casi tan preciso como Random Forest y 70 veces más rápido de entrenar (Sección~\ref{sec:exp}), y se comparó en validación con y sin las variables de clima, que además provienen de un reanálisis que no existe en tiempo real. Los modelos P10 y P90 se entrenan solo con los días de entrenamiento, de modo que los de validación quedan libres para calibrarlos con CQR~\cite{romano2019}: con $e_j = \max(\hat{q}_{0{,}1}(x_j) - y_j,\; y_j - \hat{q}_{0{,}9}(x_j))$ en validación, el intervalo final es $[\hat{q}_{0{,}1}(x) - q,\; \hat{q}_{0{,}9}(x) + q]$, donde $q$ es el cuantil $\lceil (n+1)\,0{,}8 \rceil / n$ de los $e_j$. El modelo P50 se reentrena con entrenamiento y validación.
+
 % =====================================================================
 \section{Experimentación y resultados}\label{sec:exp}
 
@@ -304,9 +313,9 @@ MLP & \texttt{learning\_rate\_init}=0.001, \texttt{hidden\_layer\_sizes}=(64, 32
 \end{gather}
 Se reportan además el porcentaje de predicciones con $|e_j| \le 2$~min y el percentil 90 de $|e_j|$ (P90). El MAE es la métrica principal. No se usa el MAPE porque se vuelve inestable cuando el valor real es pequeño~\cite{hyndman2006}, como en los tramos de 1--2~min de esta ruta, ni el $R^2$, porque el tiempo de viaje depende sobre todo de $\Delta$ y un predictor trivial ya alcanza valores altos. Para los intervalos se mide la \emph{cobertura}: el porcentaje de valores reales dentro del rango P10--P90 (ideal: 80\,\%).
 
-\textbf{Experimentos.} E1: comparación de los ocho modelos y las tres referencias en todos los pares A$\to$B. E2: error según la distancia $\Delta$. E3: ablación por grupos de variables con Gradient Boosting. E4: efecto de PCA (95\,\% de la varianza) en $k$NN y SVM. E5: sensibilidad a hiperparámetros y costo computacional. E6: análisis del error por origen y hora, y prueba de Wilcoxon de rangos con signo (unilateral) sobre el MAE por bloques día $\times$ origen $\times$ $\Delta$~\cite{demsar2006}. E7: cobertura y ancho del intervalo P10--P90.
+\textbf{Experimentos.} E1: comparación de los ocho modelos y las tres referencias en todos los pares A$\to$B. E2: error según la distancia $\Delta$. E3: ablación por grupos de variables con Gradient Boosting. E4: efecto de PCA (95\,\% de la varianza) en $k$NN y SVM. E5: sensibilidad a hiperparámetros y costo computacional. E6: análisis del error por origen y hora, y prueba de Wilcoxon de rangos con signo (unilateral) sobre el MAE por bloques día $\times$ origen $\times$ $\Delta$~\cite{demsar2006}. E7: cobertura y ancho del intervalo P10--P90. E8: modelo final elegido en validación y calibración del intervalo.
 
-\textbf{Entorno computacional.} Python 3.14.0, scikit-learn 1.9.1, pandas 3.0.2, NumPy 2.4.2 y SciPy 1.18.0, en Windows 11 con 16 núcleos lógicos y 15.2 GB de RAM. La ejecución completa del cuaderno toma unos 118~min.
+\textbf{Entorno computacional.} Python 3.14.0, scikit-learn 1.9.1, pandas 3.0.2, NumPy 2.4.2 y SciPy 1.18.0, en Windows 11 con 16 núcleos lógicos y 15,2~GB de RAM. La ejecución completa del cuaderno toma unos 118~min; el entrenamiento del modelo final (\texttt{demo/entrenar.py}), unos 4~min.
 
 \subsection{Resultados y discusión}
 
@@ -406,7 +415,7 @@ sin buses recientes & 22 & 1,980 & +3,2 \\
 sin GPS & 21 & 1,920 & +0,1 \\
 sin clima & 19 & 1,848 & -3,7 \\
 sin altitud & 23 & 1,920 & +0,1 \\
-sin estado del bus i & 20 & 2,115 & +10,2 \\
+sin estado del bus & 20 & 2,115 & +10,2 \\
 solo contexto & 5 & 2,031 & +5,8 \\
 \bottomrule
 \end{tabular}
@@ -472,19 +481,49 @@ Ref. último bus & 4,03 & 51,3\,\% & $<10^{-10}$ \\
 \end{tabular}
 \end{table}
 
-\textbf{E7: intervalos de predicción.} El intervalo P10--P90 de la regresión cuantílica contiene al valor real en el 73,5\,\% de los casos de prueba, frente al 80\,\% ideal; el 14,7\,\% queda por debajo del P10 y el 11,8\,\% por encima del P90. La cobertura disminuye con la distancia, de 78\,\% a 64\,\% (Fig.~\ref{fig:e7}), y el ancho medio del intervalo crece de 2,7~min para el siguiente punto a 7,5~min para la vuelta completa (5,1~min en promedio). La mediana (P50) tiene un MAE de 1,90~min, similar al de la predicción puntual. Los intervalos son, por tanto, algo estrechos, sobre todo para trayectos largos: los cuantiles aprendidos no cubren del todo la variabilidad de la semana de prueba. Aun así, el rango es útil para la demostración si se comunica como orientativo, y puede calibrarse (ver trabajos futuros).
+\textbf{E7: intervalos de predicción.} El intervalo P10--P90 de la regresión cuantílica contiene al valor real en el 73,5\,\% de los casos de prueba, frente al 80\,\% ideal; el 14,7\,\% queda por debajo del P10 y el 11,8\,\% por encima del P90. La cobertura disminuye con la distancia, de 78\,\% a 64\,\% (Fig.~\ref{fig:e7}), y el ancho medio del intervalo crece de 2,7~min para el siguiente punto a 7,5~min para la vuelta completa (5,1~min en promedio). La mediana (P50) tiene un MAE de 1,90~min, similar al de la predicción puntual. Los intervalos son, por tanto, algo estrechos, sobre todo para trayectos largos: los cuantiles aprendidos no cubren del todo la variabilidad de la semana de prueba. Este déficit motivó la calibración del experimento E8.
 
-\textbf{Limitaciones.} Los datos cubren un solo mes y una sola ruta, por lo que no capturan la estacionalidad ni la temporada alta turística; la semana de prueba es corta (seis días), y las predicciones se limitan a los 18 puntos de control. Por costo, SVM, $k$NN, AdaBoost y MLP se entrenaron con submuestras, lo que puede subestimar su desempeño. La ablación (E3) se midió sobre el conjunto de prueba; por ello, la recomendación de retirar el clima debe confirmarse en validación antes de fijar el modelo final, para no seleccionar variables con los datos de prueba. Por último, las 88 anomalías detectadas por Isolation Forest (0,1\,\% de los pasos) se excluyen en todos los días, incluida la semana de prueba, lo que puede reducir ligeramente el error reportado.
+\textbf{E8: modelo final y calibración.} La Tabla~\ref{tab:final} resume el modelo final. En validación, Gradient Boosting sin clima tuvo menos error que con clima (2,33 frente a 2,37~min), lo que confirma, sin usar los datos de prueba, el resultado de la ablación. Reentrenado con entrenamiento y validación, su MAE en prueba es de 1,84~min: menor que el de Random Forest con todas las variables (1,90~min) y 23\,\% menor que el del promedio histórico. La calibración CQR ensancha cada extremo del intervalo en 0,43~min y sube la cobertura P10--P90 de 72,5\,\% a 80,0\,\% en validación, que es donde se ajusta, y de 73,8\,\% a 82,1\,\% en prueba, donde no interviene. Es decir, con una corrección de menos de medio minuto el rango de llegada pasa a cumplir lo que promete: 8 de cada 10 llegadas caen dentro de él.
+
+\begin{table}[t]
+\centering
+\caption{E8: modelo final (Gradient Boosting sin clima) y calibración CQR}
+\label{tab:final}
+\footnotesize
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Medida & Validación & Prueba \\
+\midrule
+MAE sin clima (min) & 2,33 & 1,84 \\
+MAE con clima (min) & 2,37 & -- \\
+Cobertura P10--P90 sin calibrar (\%) & 72,5 & 73,8 \\
+Cobertura P10--P90 con CQR (\%) & 80,0 & 82,1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Limitaciones.} Los datos cubren un solo mes y una sola ruta, por lo que no capturan la estacionalidad ni la temporada alta turística; la semana de prueba es corta (seis días), y las predicciones se limitan a los 18 puntos de control. Por costo, SVM, $k$NN, AdaBoost y MLP se entrenaron con submuestras, lo que puede subestimar su desempeño. Las comparaciones de E1--E7 se hicieron en prueba; por eso el modelo final se eligió aparte, solo con validación (E8). La búsqueda de hiperparámetros probó seis combinaciones por modelo, por lo que es posible que existan configuraciones algo mejores. Por último, las 88 anomalías detectadas por Isolation Forest (0,1\,\% de los pasos) se excluyen en todos los días, incluida la semana de prueba, lo que puede reducir ligeramente el error reportado.
+
+% =====================================================================
+\section{Demostración interactiva}
+El modelo final se presenta en una aplicación web hecha con Streamlit (Fig.~\ref{fig:demo}), pensada para que una persona sin conocimientos de aprendizaje automático entienda qué predice el modelo y cuánto confiar en él. La aplicación repite uno de los días de prueba como si ocurriera en vivo (un segundo real equivale a un minuto del día) y funciona como un panel de paradero. Al elegir un punto de control en el mapa, muestra los buses que vienen hacia él con su llegada estimada, el rango probable calibrado y la hora del horario oficial. Cuando el bus llega, marca si la llegada real cayó dentro del rango. Un marcador acumula, para lo que va del día, el error promedio del modelo frente al del horario y el porcentaje de llegadas dentro del rango. En pantalla se evitan los términos técnicos: se habla de ``llegada estimada'' en lugar de P50 y de ``rango probable, 8 de cada 10'' en lugar de P10--P90. Cada predicción usa solo los pasos ocurridos hasta el minuto que muestra el reloj, igual que en la evaluación. El código, sus pruebas automáticas y una guía de uso están en la carpeta \texttt{demo/} del repositorio.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.85\textwidth]{fig_demo.png}
+\caption{Demostración interactiva: a la izquierda, el mapa con los 18 puntos de control y la posición de los buses; a la derecha, las llegadas estimadas al punto 10 con su rango probable (barra), la hora del horario (raya gris) y el resultado de las llegadas ya ocurridas (rombo verde dentro del rango, rojo fuera), junto con el marcador del día.}
+\label{fig:demo}
+\end{figure*}
 
 % =====================================================================
 \section{Conclusión}
-Un modelo de regresión entrenado con los registros de puntos de control y GPS estima el tiempo de llegada entre dos puntos cualesquiera de la ruta con un MAE de 1,90~min, 20,8\,\% menor que el mejor método sin aprendizaje, lo que confirma la hipótesis. La ventaja crece con la distancia entre los puntos y proviene sobre todo del estado del bus y de los buses que acaban de recorrer el trayecto; el clima de reanálisis no aporta y la altitud y el GPS casi no cambian el error. Gradient Boosting logra prácticamente el mismo error que Random Forest con un costo mucho menor, y su versión cuantílica entrega un rango de llegada con una cobertura de 73,5\,\%, algo menor que el 80\,\% nominal.
+Un modelo de regresión entrenado con los registros de puntos de control y GPS estima el tiempo de llegada entre dos puntos cualesquiera de la ruta con un MAE de 1,90~min, 20,8\,\% menor que el mejor método sin aprendizaje, lo que confirma la hipótesis. La ventaja crece con la distancia entre los puntos y proviene sobre todo del estado del bus y de los buses que acaban de recorrer el trayecto; el clima de reanálisis no aporta y la altitud y el GPS casi no cambian el error. Gradient Boosting logra prácticamente el mismo error que Random Forest con un costo mucho menor; elegido en validación y sin variables de clima, es el modelo final, con un MAE de 1,84~min en prueba. Los cuantiles aprendidos subestiman la incertidumbre (cobertura de 73,5\,\% frente al 80\,\% nominal), pero la calibración CQR la lleva a 82,1\,\% en prueba con una corrección de menos de medio minuto. El resultado se presenta en una demostración interactiva que muestra, para cada punto de control, cuándo llegará cada bus y con qué rango, lo que cumple el objetivo general del proyecto.
 
 % =====================================================================
 \section{Sugerencias de trabajos futuros}
 \begin{itemize}
-\item Usar el modelo sin las variables de clima, que en este estudio empeoran el error, o incorporar lluvia medida en estaciones de la ruta.
-\item Calibrar los intervalos (por ejemplo, con predicción conforme) para acercar la cobertura al 80\,\% en todas las distancias.
+\item Incorporar lluvia medida en estaciones de la ruta o pronósticos disponibles en tiempo real, en lugar del reanálisis.
+\item Calibrar el intervalo por distancia $\Delta$ (CQR condicional), ya que la cobertura sin calibrar cae en los trayectos largos.
 \item Estimar la llegada desde cualquier posición GPS del bus, no solo desde los puntos de control.
 \item Ampliar el estudio a más meses y rutas, y probar modelos secuenciales sobre la serie de tramos de cada vuelta.
 \end{itemize}
@@ -495,7 +534,7 @@ Los datos GPS identifican vehículos e, indirectamente, a sus conductores. Las p
 
 % =====================================================================
 \section{Repositorio del trabajo}
-El código, las tablas de resultados y las figuras están en \url{https://github.com/Alfredo123255/prediccion-amontonamiento-buses-cusco}. El cuaderno \texttt{Experimentacion.ipynb} reproduce todos los resultados a partir de los archivos originales.
+El código, las tablas de resultados y las figuras están en \url{https://github.com/Alfredo123255/prediccion-amontonamiento-buses-cusco}. El cuaderno \texttt{Experimentacion.ipynb} reproduce los experimentos E1--E7 a partir de los archivos originales; \texttt{demo/entrenar.py} entrena el modelo final y reporta el experimento E8, y \texttt{demo/app.py} es la demostración.
 
 % =====================================================================
 \section{Declaración de contribución}
@@ -538,6 +577,21 @@ T.~Reich, M.~Budka, D.~Robbins y D.~Hulbert, ``Survey of ETA prediction methods 
 
 \bibitem{petersen2021}
 N.~C. Petersen, A.~Parslov y F.~Rodrigues, ``Short-term bus travel time prediction for transfer synchronization with intelligent uncertainty handling,'' arXiv: 2104.06819, 2021.
+
+\bibitem{yu2018}
+B.~Yu, H.~Wang, W.~Shan y B.~Yao, ``Prediction of bus travel time using random forests based on near neighbors,'' \emph{Comput.-Aided Civ. Infrastruct. Eng.}, vol.~33, no.~4, pp.~333--350, 2018, doi: 10.1111/mice.12315.
+
+\bibitem{kawatani2021}
+T.~Kawatani, T.~Yamaguchi, Y.~Sato, R.~Maita y T.~Mine, ``Prediction of bus travel time over intervals between pairs of adjacent bus stops using city bus probe data,'' \emph{Int. J. Intell. Transp. Syst. Res.}, vol.~19, no.~2, pp.~456--467, 2021, doi: 10.1007/s13177-021-00251-8.
+
+\bibitem{cheng2019}
+J.~Cheng, G.~Li y X.~Chen, ``Research on travel time prediction model of freeway based on gradient boosting decision tree,'' \emph{IEEE Access}, vol.~7, pp.~7466--7480, 2019, doi: 10.1109/ACCESS.2018.2886549.
+
+\bibitem{wang2025}
+Y.~Wang, Y.~Liu y X.~Yang, ``An empirical comparison of urban road travel time prediction methods---deep learning, ensemble strategies and performance evaluation,'' \emph{Appl. Sci.}, vol.~15, no.~14, art.~8075, 2025, doi: 10.3390/app15148075.
+
+\bibitem{romano2019}
+Y.~Romano, E.~Patterson y E.~J. Candès, ``Conformalized quantile regression,'' en \emph{Proc. NeurIPS}, 2019, pp.~3543--3553.
 
 \bibitem{koenker1978}
 R.~Koenker y G.~Bassett, ``Regression quantiles,'' \emph{Econometrica}, vol.~46, no.~1, pp.~33--50, 1978.
